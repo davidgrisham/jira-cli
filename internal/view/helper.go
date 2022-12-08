@@ -53,6 +53,7 @@ func ValidIssueColumns() []string {
 		fieldCreated,
 		fieldUpdated,
 		fieldLabels,
+		fieldParentKey,
 		fieldStoryPointEstimate,
 	}
 }
@@ -112,6 +113,26 @@ func issueKeyFromTuiData(r int, d interface{}) string {
 	return path
 }
 
+func issueParentKeyFromTuiData(r int, d interface{}) string {
+	var path string
+
+	switch data := d.(type) {
+	case tui.TableData:
+        parentKeyColumn := getParentKeyColumnIndex(data[0])
+	     if parentKeyColumn == -1 {
+			return ""
+        }
+		path = data[r][getParentKeyColumnIndex(data[0])]
+		if path == "N/A" {
+			return ""
+		}
+	case tui.PreviewData:
+		path = data.Key
+	}
+
+	return path
+}
+
 func jiraURLFromTuiData(server string, r int, d interface{}) string {
 	return fmt.Sprintf("%s/browse/%s", server, issueKeyFromTuiData(r, d))
 }
@@ -119,6 +140,16 @@ func jiraURLFromTuiData(server string, r int, d interface{}) string {
 func navigate(server string) tui.SelectedFunc {
 	return func(r, c int, d interface{}) {
 		_ = browser.Browse(jiraURLFromTuiData(server, r, d))
+	}
+}
+
+func navigateToParent(server string) tui.ParentFunc {
+	return func(r, c int, d interface{}) {
+        parentKey := issueParentKeyFromTuiData(r, d)
+        if parentKey == "" {
+            return
+        }
+		_ = browser.Browse(fmt.Sprintf("%s/browse/%s", server, parentKey))
 	}
 }
 
@@ -159,6 +190,15 @@ func getKeyColumnIndex(cols []string) int {
 		}
 	}
 	return 1
+}
+
+func getParentKeyColumnIndex(cols []string) int {
+	for i, col := range cols {
+		if col == fieldParentKey {
+			return i
+		}
+	}
+	return -1
 }
 
 func coloredOut(msg string, clr color.Attribute, attrs ...color.Attribute) string {

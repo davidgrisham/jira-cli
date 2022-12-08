@@ -54,9 +54,32 @@ func (l *IssueList) Render() error {
 		tui.WithTableStyle(l.Display.TableStyle),
 		tui.WithTableFooterText(l.FooterText),
 		tui.WithSelectedFunc(navigate(l.Server)),
+		tui.WithParentFunc(navigateToParent(l.Server)),
 		tui.WithViewModeFunc(func(r, c int, _ interface{}) (func() interface{}, func(interface{}) (string, error)) {
 			dataFn := func() interface{} {
 				ci := getKeyColumnIndex(data[0])
+				iss, _ := api.ProxyGetIssue(api.Client(jira.Config{}), data[r][ci], issue.NewNumCommentsFilter(1))
+				return iss
+			}
+			renderFn := func(i interface{}) (string, error) {
+				iss := Issue{
+					Server:  l.Server,
+					Data:    i.(*jira.Issue),
+					Options: IssueOption{NumComments: 1},
+				}
+				return iss.RenderedOut(renderer)
+			}
+			return dataFn, renderFn
+		}),
+		tui.WithParentViewModeFunc(func(r, c int, _ interface{}) (func() interface{}, func(interface{}) (string, error)) {
+			dataFn := func() interface{} {
+				ci := getParentKeyColumnIndex(data[0])
+				if ci == -1 { // parent column not displaying
+					return nil
+				}
+				if data[r][ci] == "N/A" { // no parent for this issue
+					return nil
+				}
 				iss, _ := api.ProxyGetIssue(api.Client(jira.Config{}), data[r][ci], issue.NewNumCommentsFilter(1))
 				return iss
 			}
@@ -172,6 +195,12 @@ func (IssueList) assignColumns(columns []string, issue *jira.Issue) []string {
 			bucket = append(bucket, formatDateTime(issue.Fields.Updated, jira.RFC3339))
 		case fieldLabels:
 			bucket = append(bucket, strings.Join(issue.Fields.Labels, ","))
+		case fieldParentKey:
+			if issue.Fields.Parent != nil {
+				bucket = append(bucket, issue.Fields.Parent.Key)
+			} else {
+				bucket = append(bucket, "N/A")
+			}
 		case fieldStoryPointEstimate:
 			if issue.Fields.StoryPointEstimate > 0 {
 				bucket = append(bucket, fmt.Sprintf("%.1f points", issue.Fields.StoryPointEstimate))

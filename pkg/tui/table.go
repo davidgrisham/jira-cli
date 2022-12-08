@@ -18,8 +18,14 @@ var errNoData = fmt.Errorf("no data")
 // SelectedFunc is fired when a user press enter key in the table cell.
 type SelectedFunc func(row, column int, data interface{})
 
+// ParentFunc is fired when a user press 'p' key in the table cell.
+type ParentFunc func(row, column int, data interface{})
+
 // ViewModeFunc sets view mode handler func which gets triggered when a user press 'v'.
 type ViewModeFunc func(row, col int, data interface{}) (func() interface{}, func(data interface{}) (string, error))
+
+// ParentViewModeFunc sets view mode handler func which gets triggered when a user press 'P'.
+type ParentViewModeFunc func(row, col int, data interface{}) (func() interface{}, func(data interface{}) (string, error))
 
 // RefreshFunc is fired when a user press 'CTRL+R' or `F5` character in the table.
 type RefreshFunc func()
@@ -52,7 +58,9 @@ type Table struct {
 	maxColWidth  uint
 	footerText   string
 	selectedFunc SelectedFunc
+	parentFunc   ParentFunc
 	viewModeFunc ViewModeFunc
+	parentViewModeFunc ParentViewModeFunc
 	refreshFunc  RefreshFunc
 	copyFunc     CopyFunc
 	copyKeyFunc  CopyKeyFunc
@@ -113,10 +121,24 @@ func WithSelectedFunc(fn SelectedFunc) TableOption {
 	}
 }
 
+// WithParentFunc sets a func that is triggered when table row is selected.
+func WithParentFunc(fn ParentFunc) TableOption {
+	return func(t *Table) {
+		t.parentFunc = fn
+	}
+}
+
 // WithViewModeFunc sets a func that is triggered when a user press 'v'.
 func WithViewModeFunc(fn ViewModeFunc) TableOption {
 	return func(t *Table) {
 		t.viewModeFunc = fn
+	}
+}
+
+// WithParentViewModeFunc sets a func that is triggered when a user press 'v'.
+func WithParentViewModeFunc(fn ParentViewModeFunc) TableOption {
+	return func(t *Table) {
+		t.parentViewModeFunc = fn
 	}
 }
 
@@ -196,6 +218,12 @@ func (t *Table) initTable() {
 				case 'q':
 					t.screen.Stop()
 					os.Exit(0)
+				case 'P':
+					if t.parentFunc == nil {
+						return ev
+					}
+					r, c := t.view.GetSelection()
+					t.parentFunc(r, c, t.data)
 				case 'c':
 					if t.copyFunc == nil {
 						break
@@ -216,6 +244,32 @@ func (t *Table) initTable() {
 							dataFn, renderFn := t.viewModeFunc(r, c, t.data)
 
 							out, err := renderFn(dataFn())
+							if err == nil {
+								t.screen.Suspend(func() { _ = PagerOut(out) })
+							}
+						}()
+
+						// Refresh the screen.
+						t.screen.Draw()
+					}()
+				case 'p':
+					if t.parentViewModeFunc == nil {
+						break
+					}
+					r, c := t.view.GetSelection()
+
+					go func() {
+						func() {
+							t.painter.ShowPage("secondary")
+							defer t.painter.HidePage("secondary")
+
+							dataFn, renderFn := t.parentViewModeFunc(r, c, t.data)
+							data := dataFn()
+							if data == nil {
+								return
+							}
+
+							out, err := renderFn(data)
 							if err == nil {
 								t.screen.Suspend(func() { _ = PagerOut(out) })
 							}

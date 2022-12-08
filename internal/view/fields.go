@@ -18,5 +18,6 @@ const (
 	fieldEndDate            = "END"
 	fieldCompleteDate       = "COMPLETE"
 	fieldLabels             = "LABELS"
+	fieldParentKey          = "PARENT"
 	fieldStoryPointEstimate = "STORY POINTS"
 )
