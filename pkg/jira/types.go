@@ -55,10 +55,11 @@ type Issue struct {
 
 // IssueFields holds issue fields.
 type IssueFields struct {
-	Summary     string      `json:"summary"`
-	Description interface{} `json:"description"` // string in v1/v2, adf.ADF in v3
-	Labels      []string    `json:"labels"`
-	Resolution  struct {
+	Summary            string      `json:"summary"`
+	Description        interface{} `json:"description"` // string in v1/v2, adf.ADF in v3
+	Labels             []string    `json:"labels"`
+	StoryPointEstimate float32     `json:"customfield_12842"`
+	Resolution         struct {
 		Name string `json:"name"`
 	} `json:"resolution"`
 	IssueType IssueType `json:"issueType"`

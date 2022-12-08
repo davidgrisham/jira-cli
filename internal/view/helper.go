@@ -53,6 +53,7 @@ func ValidIssueColumns() []string {
 		fieldCreated,
 		fieldUpdated,
 		fieldLabels,
+		fieldStoryPointEstimate,
 	}
 }
 
