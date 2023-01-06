@@ -295,8 +295,8 @@ func renderTableHeader(t *Table, data []string) {
 		cell := tview.NewTableCell(text).
 			SetStyle(style).
 			SetSelectable(false).
-			SetTextColor(tcell.ColorSnow).
-			SetBackgroundColor(tcell.ColorDarkCyan)
+			SetTextColor(tcell.ColorWhite).
+			SetBackgroundColor(tcell.Color16)
 
 		t.view.SetCell(0, c, cell)
 	}

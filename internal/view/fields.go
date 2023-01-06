@@ -20,4 +20,5 @@ const (
 	fieldLabels             = "LABELS"
 	fieldParentKey          = "PARENT"
 	fieldStoryPointEstimate = "STORY POINTS"
+	fieldSprints            = "SPRINTS"
 )

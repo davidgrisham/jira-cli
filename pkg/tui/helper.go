@@ -89,7 +89,7 @@ func cmdExists(cmd string) bool {
 func customTUIStyle(style TableStyle) tcell.Style {
 	bg, ok := tcell.ColorNames[style.SelectionBackground]
 	if !ok {
-		bg = tcell.ColorDefault
+		bg = tcell.Color236
 	}
 	fg, ok := tcell.ColorNames[style.SelectionForeground]
 	if !ok {

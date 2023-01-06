@@ -55,6 +55,7 @@ func ValidIssueColumns() []string {
 		fieldLabels,
 		fieldParentKey,
 		fieldStoryPointEstimate,
+		fieldSprints,
 	}
 }
 

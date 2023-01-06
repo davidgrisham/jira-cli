@@ -207,6 +207,17 @@ func (IssueList) assignColumns(columns []string, issue *jira.Issue) []string {
 			} else {
 				bucket = append(bucket, "N/A")
 			}
+		case fieldSprints:
+    		numSprints := len(issue.Fields.Sprints)
+    		if numSprints > 0 {
+				sprints := issue.Fields.Sprints[numSprints - 1].Name
+				if numSprints > 1 {
+    				sprints += fmt.Sprintf(" (+%d)", numSprints - 1)
+				}
+				bucket = append(bucket, sprints)
+    		} else {
+				bucket = append(bucket, "N/A")
+    		}
 		}
 	}
 

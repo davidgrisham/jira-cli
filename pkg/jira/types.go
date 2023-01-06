@@ -59,6 +59,7 @@ type IssueFields struct {
 	Description        interface{} `json:"description"` // string in v1/v2, adf.ADF in v3
 	Labels             []string    `json:"labels"`
 	StoryPointEstimate float32     `json:"customfield_12842"`
+	Sprints            []Sprint    `json:"customfield_10007"`
 	Resolution         struct {
 		Name string `json:"name"`
 	} `json:"resolution"`
