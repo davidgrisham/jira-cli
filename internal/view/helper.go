@@ -106,7 +106,7 @@ func issueKeyFromTuiData(r int, d interface{}) string {
 
 	switch data := d.(type) {
 	case tui.TableData:
-		path = data[r][getKeyColumnIndex(data[0])]
+		path = data.Get(r, data.GetIndex(fieldKey))
 	case tui.PreviewData:
 		path = data.Key
 	}
@@ -119,10 +119,10 @@ func issueParentKeyFromTuiData(r int, d interface{}) string {
 
 	switch data := d.(type) {
 	case tui.TableData:
-        parentKeyColumn := getParentKeyColumnIndex(data[0])
-	     if parentKeyColumn == -1 {
+		parentKeyColumn := getParentKeyColumnIndex(data[0])
+		if parentKeyColumn == -1 {
 			return ""
-        }
+		}
 		path = data[r][getParentKeyColumnIndex(data[0])]
 		if path == "N/A" {
 			return ""
@@ -146,10 +146,10 @@ func navigate(server string) tui.SelectedFunc {
 
 func navigateToParent(server string) tui.ParentFunc {
 	return func(r, c int, d interface{}) {
-        parentKey := issueParentKeyFromTuiData(r, d)
-        if parentKey == "" {
-            return
-        }
+		parentKey := issueParentKeyFromTuiData(r, d)
+		if parentKey == "" {
+			return
+		}
 		_ = browser.Browse(fmt.Sprintf("%s/browse/%s", server, parentKey))
 	}
 }
@@ -184,15 +184,6 @@ func renderPlain(w io.Writer, data tui.TableData) error {
 	return nil
 }
 
-func getKeyColumnIndex(cols []string) int {
-	for i, col := range cols {
-		if col == fieldKey {
-			return i
-		}
-	}
-	return 1
-}
-
 func getParentKeyColumnIndex(cols []string) int {
 	for i, col := range cols {
 		if col == fieldParentKey {
@@ -224,8 +215,8 @@ func gray256(msg string) string {
 }
 
 func shortenAndPad(msg string, limit int) string {
-	if limit >= 3 && len(msg) > limit {
-		return msg[0:limit-3] + "..."
+	if limit > 1 && len(msg) > limit {
+		return msg[0:limit-1] + "…"
 	}
 	return pad(msg, limit)
 }

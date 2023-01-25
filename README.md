@@ -8,7 +8,7 @@
 <div>
     <p align="center">
         <a href="https://github.com/ankitpokhrel/jira-cli/actions?query=workflow%3Abuild+branch%3Amaster">
-            <img alt="Build" src="https://img.shields.io/github/workflow/status/ankitpokhrel/jira-cli/build?style=flat-square" />
+            <img alt="Build" src="https://img.shields.io/github/actions/workflow/status/ankitpokhrel/jira-cli/ci.yml?branch=main&style=flat-square" />
         </a>
         <a href="https://goreportcard.com/report/github.com/ankitpokhrel/jira-cli">
             <img alt="GO Report-card" src="https://goreportcard.com/badge/github.com/ankitpokhrel/jira-cli?style=flat-square" />
@@ -45,7 +45,7 @@ The tool started with the idea of making issue search and navigation as straight
 help of [outstanding supporters like you](#support-the-project), we evolved, and the tool now includes all necessary
 features like issue creation, cloning, linking, ticket transition, and much more.
 
-> The TUI is heavily inspired by the [GitHub CLI](https://github.com/cli/cli).
+> This tool is heavily inspired by the [GitHub CLI](https://github.com/cli/cli)
 
 ## Supported platforms
 Note that some features might work slightly differently in cloud installation versus on-premise installation due to the
@@ -56,97 +56,15 @@ nature of the data. Yet, we've attempted to make the experience as similar as po
 | **Jira**  | <a href="#"><img alt="Jira Cloud" src="https://img.shields.io/badge/Jira Cloud-%E2%9C%93-dark--green?logo=jira&style=flat-square" /></a><a href="#"><img alt="Jira Server" src="https://img.shields.io/badge/Jira Server-%E2%9C%93-dark--green?logo=jira&style=flat-square" /></a> |
 
 ## Installation
-`jira-cli` is available as a downloadable binary for Linux, macOS, and Windows from the [releases page](https://github.com/ankitpokhrel/jira-cli/releases).
+`jira-cli` is available as a downloadable packaged binary for Linux, macOS, and Windows from the [releases page](https://github.com/ankitpokhrel/jira-cli/releases).
 
-#### Docker
-You can use the available docker image to run `jira-cli` inside a docker container.
+You can use Docker to quickly try out `jira-cli`.
 
 ```sh
 docker run -it --rm ghcr.io/ankitpokhrel/jira-cli:latest
 ```
 
-#### Homebrew
-
-> Maintainer: [@ankitpokhrel](https://github.com/ankitpokhrel)
-
-You can use Homebrew tap in macOS to install `jira-cli`.
-
-```sh
-brew tap ankitpokhrel/jira-cli
-brew install jira-cli
-```
-
-#### FreeBSD
-
-> Maintainer: [@fraggerfox](https://github.com/fraggerfox)
-
-You can install it from the ports tree using the following command
-
-```sh
-cd /usr/ports/www/jira-cli/ && make install clean
-```
-
-or directly from the binary package repository using the command
-
-``` sh
-pkg install jira-cli
-```
-
-#### NetBSD
-
-> Maintainer: [@fraggerfox](https://github.com/fraggerfox)
-
-You can install it from pkgsrc using the following command
-
-```sh
-cd /usr/pkgsrc/www/jira-cli/ && make install clean
-```
-
-or directly from the binary package repository using the command
-
-``` sh
-pkgin install jira-cli
-```
-
-#### Nix
-
-> Maintainer: [@bryanasdev000](https://github.com/bryanasdev000) and [@anthonyroussel](https://github.com/anthonyroussel)
-
-You can use Nix to run `jira-cli`.
-
-```sh
-nix-shell -p jira-cli-go
-```
-
-You can also use Nix to imperatively install `jira-cli`.
-
-```sh
-nix-env -f '<nixpkgs>' -iA jira-cli-go
-```
-
-Alternatively, you can install it the declarative way in NixOS with `environment.systemPackages`/`users.users.<name>.packages` or with Home Manager in any Linux distro with `home.packages`.
-
-### Scoop (Windows)
-
-You can use Scoop to install `jira-cli`.
-
-[Install Scoop via Powershell](https://scoop.sh/)
-
-Then install `jira-cli` itself:
-
-```
-scoop bucket add extras
-scoop install jira-cli
-```
-
-#### Manual
-You can also install the runnable binary to your `$GOPATH/bin` (go1.16+).
-
-```sh
-go install github.com/ankitpokhrel/jira-cli/cmd/jira@latest
-```
-
-See [releases page](https://github.com/ankitpokhrel/jira-cli/releases) for downloadable packaged binaries.
+Follow the [installation guide](https://github.com/ankitpokhrel/jira-cli/wiki/Installation) for other installation methods like `Homebrew`, `Nix`, etc.
 
 ## Getting started
 
@@ -199,6 +117,7 @@ The lists are displayed in an interactive UI by default.
 - Use arrow keys or `j, k, h, l` characters to navigate through the list.
 - Use `g` and `SHIFT+G` to quickly navigate to the top and bottom respectively.
 - Press `v` to view selected issue details.
+- Press `m` to transition the selected issue.
 - Press `CTRL+R` or `F5` to refresh the issues list.
 - Hit `ENTER` to open the selected issue in the browser.
 - Press `c` to copy issue URL to the system clipboard. This requires `xclip` / `xsel` in linux.
@@ -449,6 +368,8 @@ $ jira issue move ISSUE-1 "In Progress" --comment "Started working on it"
 # Set resolution to fixed and assign to self while moving the issue
 $ jira issue move ISSUE-1 Done -RFixed -a$(jira me)
 ```
+
+To transition the selected issue from the TUI, press `m`.
 
 #### View
 The `view` command lets you see issue details in a terminal. Atlassian document is roughly converted to a markdown
@@ -740,7 +661,7 @@ Some example scripts are listed below.
 ```bash
 #!/usr/bin/env bash
 
-tickets=$(jira issue list --created month --plain --columns created --no-headers | awk '{print $1}' | awk -F'-' '{print $3}' | sort -n | uniq -c)
+tickets=$(jira issue list --created month --plain --columns created --no-headers | awk '{print $2}' | awk -F'-' '{print $3}' | sort -n | uniq -c)
 
 echo "${tickets}" | while IFS=$'\t' read -r line; do
   day=$(echo "${line}" | awk '{print $2}')
@@ -786,7 +707,7 @@ Sprint 1:   30
 sprints=$(jira sprint list --table --plain --columns id,name --no-headers)
 
 echo "${sprints}" | while IFS=$'\t' read -r id name; do
-  count=$(jira sprint list "${id}" --plain --columns assignee --no-headers 2>/dev/null | sort -n | uniq | wc -l)
+  count=$(jira sprint list "${id}" --plain --columns assignee --no-headers 2>/dev/null | awk '{print $2}' | awk NF | sort -n | uniq | wc -l)
 
   printf "%10s: %3d\n" "${name}" $((count))
 done

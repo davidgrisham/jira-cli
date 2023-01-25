@@ -15,11 +15,12 @@ import (
 
 // DisplayFormat is a issue display type.
 type DisplayFormat struct {
-	Plain      bool
-	NoHeaders  bool
-	NoTruncate bool
-	Columns    []string
-	TableStyle tui.TableStyle
+	Plain        bool
+	NoHeaders    bool
+	NoTruncate   bool
+	Columns      []string
+	FixedColumns uint
+	TableStyle   tui.TableStyle
 }
 
 // IssueList is a list view for issues.
@@ -35,7 +36,7 @@ type IssueList struct {
 
 // Render renders the view.
 func (l *IssueList) Render() error {
-	if l.Display.Plain {
+	if l.Display.Plain || tui.IsDumbTerminal() || tui.IsNotTTY() {
 		w := tabwriter.NewWriter(os.Stdout, 0, tabWidth, 1, '\t', 0)
 		return l.renderPlain(w)
 	}
@@ -57,8 +58,8 @@ func (l *IssueList) Render() error {
 		tui.WithParentFunc(navigateToParent(l.Server)),
 		tui.WithViewModeFunc(func(r, c int, _ interface{}) (func() interface{}, func(interface{}) (string, error)) {
 			dataFn := func() interface{} {
-				ci := getKeyColumnIndex(data[0])
-				iss, _ := api.ProxyGetIssue(api.Client(jira.Config{}), data[r][ci], issue.NewNumCommentsFilter(1))
+				ci := data.GetIndex(fieldKey)
+				iss, _ := api.ProxyGetIssue(api.DefaultClient(false), data.Get(r, ci), issue.NewNumCommentsFilter(1))
 				return iss
 			}
 			renderFn := func(i interface{}) (string, error) {
@@ -95,7 +96,48 @@ func (l *IssueList) Render() error {
 		}),
 		tui.WithCopyFunc(copyURL(l.Server)),
 		tui.WithCopyKeyFunc(copyKey()),
+		tui.WithMoveFunc(func(r, c int) func() (string, []string, tui.MoveHandlerFunc, string, tui.RefreshTableStateFunc) {
+			dataFn := func() (string, []string, tui.MoveHandlerFunc, string, tui.RefreshTableStateFunc) {
+				key := data[r][data.GetIndex(fieldKey)]
+				client := api.DefaultClient(false)
+				transitions, _ := api.ProxyTransitions(client, key)
+
+				var actions []string
+				for _, t := range transitions {
+					actions = append(actions, t.Name)
+				}
+
+				actionHandler := func(state string) error {
+					var tr *jira.Transition
+					for _, t := range transitions {
+						if strings.EqualFold(t.Name, state) {
+							tr = t
+							break
+						}
+					}
+					if tr == nil {
+						return fmt.Errorf("transition '%s' not found", state)
+					}
+					_, err := client.Transition(key, &jira.TransitionRequest{
+						Transition: &jira.TransitionRequestData{
+							ID:   tr.ID.String(),
+							Name: tr.Name,
+						},
+					})
+					return err
+				}
+
+				statusFieldIdx := data.GetIndex(fieldStatus)
+				currentStatus := data.Get(r, statusFieldIdx)
+
+				return key, actions, actionHandler, currentStatus, func(r, c int, val string) {
+					data.Update(r, statusFieldIdx, val)
+				}
+			}
+			return dataFn
+		}),
 		tui.WithRefreshFunc(l.Refresh),
+		tui.WithFixedColumns(l.Display.FixedColumns),
 	)
 
 	return view.Paint(data)
@@ -168,7 +210,7 @@ func (l *IssueList) data() tui.TableData {
 	return data
 }
 
-func (IssueList) assignColumns(columns []string, issue *jira.Issue) []string {
+func (*IssueList) assignColumns(columns []string, issue *jira.Issue) []string {
 	var bucket []string
 
 	for _, column := range columns {
@@ -208,16 +250,16 @@ func (IssueList) assignColumns(columns []string, issue *jira.Issue) []string {
 				bucket = append(bucket, "N/A")
 			}
 		case fieldSprints:
-    		numSprints := len(issue.Fields.Sprints)
-    		if numSprints > 0 {
-				sprints := issue.Fields.Sprints[numSprints - 1].Name
+			numSprints := len(issue.Fields.Sprints)
+			if numSprints > 0 {
+				sprints := issue.Fields.Sprints[numSprints-1].Name
 				if numSprints > 1 {
-    				sprints += fmt.Sprintf(" (+%d)", numSprints - 1)
+					sprints += fmt.Sprintf(" (+%d)", numSprints-1)
 				}
 				bucket = append(bucket, sprints)
-    		} else {
+			} else {
 				bucket = append(bucket, "N/A")
-    		}
+			}
 		}
 	}
 
